@@ -68,7 +68,11 @@ async function loadSpaces() {
 // Render space icons at bottom
 function renderSpaces() {
   const spacesList = document.getElementById('spaces-list');
-  spacesList.innerHTML = '';
+  const addBtn = document.getElementById('add-space-btn');
+
+  // Clear only space icons, keep the add button
+  const icons = spacesList.querySelectorAll('.space-icon');
+  icons.forEach(icon => icon.remove());
 
   spaces.forEach(space => {
     const spaceIcon = document.createElement('div');
@@ -90,7 +94,8 @@ function renderSpaces() {
       showSpaceContextMenu(e, space);
     });
 
-    spacesList.appendChild(spaceIcon);
+    // Insert before the add button
+    spacesList.insertBefore(spaceIcon, addBtn);
   });
 }
 
@@ -208,9 +213,15 @@ async function loadTabs() {
     // Get tab-space mapping
     tabSpaceMap = await getTabSpaceMap();
 
-    // Assign new tabs to current space if they don't have a space
+    // Get valid space IDs
+    const validSpaceIds = spaces.map(s => s.id);
+
+    // Assign tabs to current space if they don't have a space or their space was deleted
     for (const tab of allTabs) {
-      if (!tabSpaceMap[tab.id]) {
+      const mappedSpace = tabSpaceMap[tab.id];
+
+      // If tab has no space or is mapped to a deleted space, assign to current space
+      if (!mappedSpace || !validSpaceIds.includes(mappedSpace)) {
         tabSpaceMap[tab.id] = currentSpaceId;
         await setTabSpace(tab.id, currentSpaceId);
       }
