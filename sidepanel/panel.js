@@ -288,6 +288,12 @@ function createTabElement(tab) {
   // Click to switch to tab
   tabItem.onclick = () => switchToTab(tab.id);
 
+  // Right-click for context menu
+  tabItem.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showTabContextMenu(e, tab);
+  });
+
   return tabItem;
 }
 
@@ -317,6 +323,92 @@ async function createNewTab() {
     await setTabSpace(newTab.id, currentSpaceId);
   } catch (error) {
     console.error('Error creating new tab:', error);
+  }
+}
+
+// Show tab context menu
+function showTabContextMenu(event, tab) {
+  const menuItems = [
+    { label: 'Copy Link', action: 'copy' }
+  ];
+
+  // Add "Move to Space" submenu if there are other spaces
+  const otherSpaces = spaces.filter(s => s.id !== currentSpaceId);
+  if (otherSpaces.length > 0) {
+    menuItems.push({ type: 'divider' });
+    menuItems.push({ label: 'Move to Space ›', action: 'move-space-menu' });
+  }
+
+  menuItems.push({ type: 'divider' });
+  menuItems.push({ label: 'Pin Tab', action: 'pin' });
+  menuItems.push({ type: 'divider' });
+  menuItems.push({ label: 'Close Tab', action: 'close', danger: true });
+
+  contextMenu.show(event.clientX, event.clientY, menuItems, tab, handleTabContextAction);
+}
+
+// Handle tab context menu actions
+async function handleTabContextAction(action, tab) {
+  if (action === 'copy') {
+    await copyTabLink(tab);
+  } else if (action === 'move-space-menu') {
+    showMoveToSpaceMenu(tab);
+  } else if (action === 'pin') {
+    toast.show('Pin functionality coming in Phase 4');
+  } else if (action === 'close') {
+    await closeTab(tab.id);
+  }
+}
+
+// Copy tab link to clipboard
+async function copyTabLink(tab) {
+  try {
+    await navigator.clipboard.writeText(tab.url);
+    toast.show('Link copied to clipboard');
+  } catch (error) {
+    console.error('Error copying link:', error);
+    toast.show('Failed to copy link');
+  }
+}
+
+// Show "Move to Space" submenu
+function showMoveToSpaceMenu(tab) {
+  const otherSpaces = spaces.filter(s => s.id !== currentSpaceId);
+  const spaceItems = otherSpaces.map(space => ({
+    label: `${space.icon} ${space.name}`,
+    action: `move-to-${space.id}`
+  }));
+
+  // Calculate position for submenu (to the right of the main menu)
+  const mainMenu = document.getElementById('context-menu');
+  const rect = mainMenu.getBoundingClientRect();
+
+  contextMenu.show(
+    rect.right + 5,
+    rect.top,
+    spaceItems,
+    tab,
+    async (action, tabData) => {
+      // Extract space ID from action string
+      if (action.startsWith('move-to-')) {
+        const spaceId = action.replace('move-to-', '');
+        await moveTabToSpace(tabData.id, spaceId);
+      }
+    }
+  );
+}
+
+// Move tab to different space
+async function moveTabToSpace(tabId, targetSpaceId) {
+  try {
+    await setTabSpace(tabId, targetSpaceId);
+    await loadTabs();
+
+    const targetSpace = spaces.find(s => s.id === targetSpaceId);
+    toast.show(`Moved tab to "${targetSpace.name}"`);
+  } catch (error) {
+    console.error('Error moving tab:', error);
+    toast.show('Failed to move tab');
   }
 }
 
