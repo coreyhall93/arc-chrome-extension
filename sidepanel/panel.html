@@ -6,6 +6,8 @@
   <title>Arc Sidebar</title>
   <link rel="stylesheet" href="panel.css">
   <link rel="stylesheet" href="space-modal.css">
+  <link rel="stylesheet" href="context-menu.css">
+  <link rel="stylesheet" href="toast.css">
 </head>
 <body>
   <div id="sidebar">
@@ -37,8 +39,8 @@
     <div id="spaces-section" class="spaces-section">
       <div id="spaces-list" class="spaces-list">
         <!-- Space icons will be rendered here -->
+        <button id="add-space-btn" class="space-add-btn" title="Add Space">+</button>
       </div>
-      <button id="add-space-btn" class="space-add-btn" title="Add Space">+</button>
     </div>
   </div>
 
@@ -46,6 +48,8 @@
   <div id="space-modal-container"></div>
 
   <script src="../lib/storage.js"></script>
+  <script src="context-menu.js"></script>
+  <script src="toast.js"></script>
   <script src="space-modal.js"></script>
   <script src="panel.js"></script>
 </body>

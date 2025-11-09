@@ -7,6 +7,8 @@ let spaces = [];
 let currentSpaceId = null;
 let tabSpaceMap = {};
 let spaceModal = null;
+let contextMenu = null;
+let toast = null;
 
 // Initialize
 async function init() {
@@ -18,9 +20,15 @@ async function init() {
     // Initialize storage
     await initializeStorage();
 
-    // Initialize space modal
+    // Initialize UI components
     spaceModal = new SpaceModal();
     spaceModal.init();
+
+    contextMenu = new ContextMenu();
+    contextMenu.init();
+
+    toast = new Toast();
+    toast.init();
 
     // Load spaces and current space
     await loadSpaces();
@@ -113,26 +121,80 @@ async function switchSpace(spaceId) {
 
 // Show space context menu
 function showSpaceContextMenu(event, space) {
-  // TODO: Implement proper context menu
-  // For now, use a simple confirm dialog for delete
-  const action = confirm(`Delete space "${space.name}"?`);
+  const menuItems = [
+    { label: 'Edit Space', action: 'edit' },
+    { type: 'divider' },
+    { label: 'Delete Space', action: 'delete', danger: true }
+  ];
 
-  if (action) {
-    handleDeleteSpace(space.id);
+  contextMenu.show(event.clientX, event.clientY, menuItems, space, handleSpaceContextAction);
+}
+
+// Handle space context menu actions
+async function handleSpaceContextAction(action, space) {
+  if (action === 'edit') {
+    openEditSpaceModal(space);
+  } else if (action === 'delete') {
+    handleDeleteSpace(space.id, space);
   }
 }
 
+// Open edit space modal
+function openEditSpaceModal(space) {
+  spaceModal.open('edit', space, async (data) => {
+    try {
+      await updateSpace(data.spaceId, { name: data.name, icon: data.icon });
+      await loadSpaces();
+      toast.show(`Space renamed to "${data.name}"`);
+    } catch (error) {
+      console.error('Error updating space:', error);
+      alert('Failed to update space');
+    }
+  });
+}
+
 // Handle space deletion
-async function handleDeleteSpace(spaceId) {
+async function handleDeleteSpace(spaceId, spaceData) {
   try {
+    // Store backup for undo
+    const backupSpace = { ...spaceData };
+    const oldSpaces = [...spaces];
+    const oldCurrentSpace = currentSpaceId;
+
+    // Delete space
     spaces = await deleteSpace(spaceId);
     currentSpaceId = await getCurrentSpace();
 
     // Refresh UI
     await loadSpaces();
     await loadTabs();
+
+    // Show undo toast
+    toast.show(
+      `Deleted space "${backupSpace.name}"`,
+      async () => {
+        // Undo deletion
+        try {
+          // Restore the space
+          await chrome.storage.sync.set({
+            [STORAGE_KEYS.SPACES]: oldSpaces,
+            [STORAGE_KEYS.CURRENT_SPACE]: oldCurrentSpace
+          });
+
+          // Refresh UI
+          await loadSpaces();
+          await loadTabs();
+
+          toast.show(`Restored space "${backupSpace.name}"`);
+        } catch (error) {
+          console.error('Error undoing deletion:', error);
+          alert('Failed to undo deletion');
+        }
+      },
+      5000
+    );
   } catch (error) {
-    alert(error.message);
+    toast.show(error.message);
     console.error('Error deleting space:', error);
   }
 }
