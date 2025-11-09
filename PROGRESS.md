@@ -56,12 +56,22 @@
 **Tasks:** 5-8 (4 tasks)
 
 ### What was built:
-- Click to switch to any tab
-- Hover shows close button (X) for each tab
-- Click X to close tab
-- Active tab highlighted with blue background and left border
-- New tab button at bottom creates tabs in current window
-- Visual states for active/inactive tabs
+- **Click to Switch Tabs**: Click any tab in sidebar to activate it
+- **Close Button on Hover**: X button appears when hovering over tabs
+- **Tab Closing**: Click X to close individual tabs
+- **Active Tab Highlighting**: Current tab shows blue background (#e8f0fe) with 3px left blue border (#1a73e8)
+- **New Tab Button**: "+" button at bottom of sidebar creates new tabs in current window
+- **Visual States**: Clear distinction between active and inactive tabs
+
+### Key Features:
+✅ Instant tab switching from sidebar
+✅ Tab close functionality
+✅ Chrome-native visual design
+✅ Real-time tab state updates
+
+### Files Modified:
+- `sidepanel/panel.js` - Added tab interaction handlers
+- `sidepanel/panel.css` - Added hover and active states
 
 ---
 
@@ -70,20 +80,34 @@
 **Tasks:** 1-4 (4 tasks)
 
 ### What was built:
-- Chrome Extension Manifest V3 structure
-- Side Panel API integration
-- Background service worker for tab events
-- Basic tab listing in sidebar
-- Chrome-native styling (matching Chrome's design language)
-- HTML/CSS/JS framework
+- **Chrome Extension Structure**: Manifest V3 with required permissions (tabs, storage, sidePanel, contextMenus)
+- **Side Panel API**: Integrated Chrome's Side Panel API for native sidebar experience
+- **Background Service Worker**: Listens to tab events (created, updated, removed, activated, moved) and notifies side panel
+- **Tab Listing**: Displays all open tabs with favicon and title
+- **Chrome-Native Styling**: Matches Chrome's design language (colors, spacing, typography)
+- **Project Structure**: Organized folder structure with sidepanel, lib, and icons directories
+
+### Key Features:
+✅ Extension loads in Chrome developer mode
+✅ Side panel opens when extension icon is clicked
+✅ All tabs listed with favicons and titles
+✅ Real-time sync between browser tabs and sidebar
+✅ Clean, Chrome-like visual design
 
 ### Files Created:
-- `manifest.json`
-- `background.js`
-- `sidepanel/panel.html`
-- `sidepanel/panel.css`
-- `sidepanel/panel.js`
-- `.gitignore`
+- `manifest.json` - Extension configuration (Manifest V3)
+- `background.js` - Service worker for tab event handling
+- `sidepanel/panel.html` - Sidebar structure
+- `sidepanel/panel.css` - Chrome-native styling (~150 lines)
+- `sidepanel/panel.js` - Tab management logic
+- `.gitignore` - Git ignore rules
+- `icons/placeholder.txt` - Icon directory placeholder
+
+### Technical Details:
+- Uses Chrome Tabs API for tab operations
+- Uses Chrome Side Panel API for sidebar UI
+- Event-driven architecture with message passing
+- Fallback favicon for tabs without icons
 
 ---
 
