@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Arc Sidebar</title>
   <link rel="stylesheet" href="panel.css">
+  <link rel="stylesheet" href="space-modal.css">
 </head>
 <body>
   <div id="sidebar">
@@ -32,12 +33,20 @@
       <span class="plus-icon">+</span>
     </button>
 
-    <!-- Space Icons (will be added later) -->
+    <!-- Space Icons -->
     <div id="spaces-section" class="spaces-section">
-      <div id="spaces-list" class="spaces-list"></div>
+      <div id="spaces-list" class="spaces-list">
+        <!-- Space icons will be rendered here -->
+      </div>
+      <button id="add-space-btn" class="space-add-btn" title="Add Space">+</button>
     </div>
   </div>
 
+  <!-- Space Modal -->
+  <div id="space-modal-container"></div>
+
+  <script src="../lib/storage.js"></script>
+  <script src="space-modal.js"></script>
   <script src="panel.js"></script>
 </body>
 </html>

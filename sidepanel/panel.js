@@ -3,6 +3,10 @@
 // State management
 let currentWindowId = null;
 let tabs = [];
+let spaces = [];
+let currentSpaceId = null;
+let tabSpaceMap = {};
+let spaceModal = null;
 
 // Initialize
 async function init() {
@@ -10,6 +14,16 @@ async function init() {
     // Get current window
     const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     currentWindowId = currentTab.windowId;
+
+    // Initialize storage
+    await initializeStorage();
+
+    // Initialize space modal
+    spaceModal = new SpaceModal();
+    spaceModal.init();
+
+    // Load spaces and current space
+    await loadSpaces();
 
     // Load tabs
     await loadTabs();
@@ -24,10 +38,125 @@ async function init() {
   }
 }
 
+// Load spaces from storage
+async function loadSpaces() {
+  try {
+    spaces = await getSpaces();
+    currentSpaceId = await getCurrentSpace();
+
+    // If no current space, set to first space
+    if (!currentSpaceId && spaces.length > 0) {
+      currentSpaceId = spaces[0].id;
+      await setCurrentSpace(currentSpaceId);
+    }
+
+    renderSpaces();
+    updateSpaceName();
+  } catch (error) {
+    console.error('Error loading spaces:', error);
+  }
+}
+
+// Render space icons at bottom
+function renderSpaces() {
+  const spacesList = document.getElementById('spaces-list');
+  spacesList.innerHTML = '';
+
+  spaces.forEach(space => {
+    const spaceIcon = document.createElement('div');
+    spaceIcon.className = 'space-icon';
+    spaceIcon.textContent = space.icon;
+    spaceIcon.title = space.name;
+    spaceIcon.dataset.spaceId = space.id;
+
+    if (space.id === currentSpaceId) {
+      spaceIcon.classList.add('active');
+    }
+
+    // Click to switch space
+    spaceIcon.addEventListener('click', () => switchSpace(space.id));
+
+    // Right-click for context menu
+    spaceIcon.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showSpaceContextMenu(e, space);
+    });
+
+    spacesList.appendChild(spaceIcon);
+  });
+}
+
+// Update space name display
+function updateSpaceName() {
+  const currentSpace = spaces.find(s => s.id === currentSpaceId);
+  const spaceNameEl = document.getElementById('space-name');
+
+  if (currentSpace) {
+    spaceNameEl.textContent = currentSpace.name;
+  }
+}
+
+// Switch to a different space
+async function switchSpace(spaceId) {
+  try {
+    currentSpaceId = spaceId;
+    await setCurrentSpace(spaceId);
+
+    // Update UI
+    renderSpaces();
+    updateSpaceName();
+    await loadTabs();
+  } catch (error) {
+    console.error('Error switching space:', error);
+  }
+}
+
+// Show space context menu
+function showSpaceContextMenu(event, space) {
+  // TODO: Implement proper context menu
+  // For now, use a simple confirm dialog for delete
+  const action = confirm(`Delete space "${space.name}"?`);
+
+  if (action) {
+    handleDeleteSpace(space.id);
+  }
+}
+
+// Handle space deletion
+async function handleDeleteSpace(spaceId) {
+  try {
+    spaces = await deleteSpace(spaceId);
+    currentSpaceId = await getCurrentSpace();
+
+    // Refresh UI
+    await loadSpaces();
+    await loadTabs();
+  } catch (error) {
+    alert(error.message);
+    console.error('Error deleting space:', error);
+  }
+}
+
 // Load all tabs from current window
 async function loadTabs() {
   try {
-    tabs = await chrome.tabs.query({ windowId: currentWindowId });
+    // Get all tabs in current window
+    const allTabs = await chrome.tabs.query({ windowId: currentWindowId });
+
+    // Get tab-space mapping
+    tabSpaceMap = await getTabSpaceMap();
+
+    // Assign new tabs to current space if they don't have a space
+    for (const tab of allTabs) {
+      if (!tabSpaceMap[tab.id]) {
+        tabSpaceMap[tab.id] = currentSpaceId;
+        await setTabSpace(tab.id, currentSpaceId);
+      }
+    }
+
+    // Filter tabs for current space
+    tabs = allTabs.filter(tab => tabSpaceMap[tab.id] === currentSpaceId);
+
     renderTabs();
   } catch (error) {
     console.error('Error loading tabs:', error);
@@ -102,6 +231,7 @@ async function switchToTab(tabId) {
 async function closeTab(tabId) {
   try {
     await chrome.tabs.remove(tabId);
+    await removeTabFromMap(tabId);
   } catch (error) {
     console.error('Error closing tab:', error);
   }
@@ -110,16 +240,33 @@ async function closeTab(tabId) {
 // Create new tab
 async function createNewTab() {
   try {
-    await chrome.tabs.create({ windowId: currentWindowId });
+    const newTab = await chrome.tabs.create({ windowId: currentWindowId });
+    await setTabSpace(newTab.id, currentSpaceId);
   } catch (error) {
     console.error('Error creating new tab:', error);
   }
+}
+
+// Open space creation modal
+function openCreateSpaceModal() {
+  spaceModal.open('create', null, async (data) => {
+    try {
+      const newSpace = await createSpace(data.name, data.icon);
+      await loadSpaces();
+    } catch (error) {
+      console.error('Error creating space:', error);
+      alert('Failed to create space');
+    }
+  });
 }
 
 // Set up event listeners
 function setupEventListeners() {
   // New tab button
   document.getElementById('new-tab-btn').addEventListener('click', createNewTab);
+
+  // Add space button
+  document.getElementById('add-space-btn').addEventListener('click', openCreateSpaceModal);
 }
 
 // Handle messages from background script
