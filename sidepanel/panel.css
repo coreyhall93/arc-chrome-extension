@@ -1,0 +1,195 @@
+/* Chrome-native styling for Arc Sidebar */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 13px;
+  color: #202124;
+  background-color: #ffffff;
+  overflow: hidden;
+  width: 100%;
+  height: 100vh;
+}
+
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Favorites Grid */
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.favorites-grid.four-column {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.favorites-grid:empty {
+  display: none;
+  padding: 0;
+  border-bottom: none;
+}
+
+/* Space Name */
+.space-name {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5f6368;
+  border-bottom: 1px solid #e8eaed;
+}
+
+/* Tabs Sections */
+.tabs-section {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.tabs-list {
+  padding: 4px 0;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background-color: #e8eaed;
+  margin: 4px 8px;
+}
+
+/* Tab Item */
+.tab-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: background-color 0.1s ease;
+}
+
+.tab-item:hover {
+  background-color: #f1f3f4;
+}
+
+.tab-item.active {
+  background-color: #e8f0fe;
+}
+
+.tab-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #1a73e8;
+}
+
+.tab-favicon {
+  width: 16px;
+  height: 16px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #202124;
+}
+
+.tab-close {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 20px;
+  text-align: center;
+  color: #5f6368;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.tab-item:hover .tab-close {
+  display: block;
+}
+
+.tab-close:hover {
+  background-color: #e8eaed;
+}
+
+/* New Tab Button */
+.new-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: 8px 16px;
+  border: 1px solid #e8eaed;
+  background-color: transparent;
+  color: #5f6368;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background-color 0.1s ease;
+}
+
+.new-tab-btn:hover {
+  background-color: #f1f3f4;
+}
+
+.plus-icon {
+  font-weight: 300;
+}
+
+/* Spaces Section */
+.spaces-section {
+  border-top: 1px solid #e8eaed;
+  padding: 12px;
+  background-color: #f8f9fa;
+}
+
+.spaces-list {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Scrollbar styling */
+.tabs-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tabs-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs-section::-webkit-scrollbar-thumb {
+  background-color: #dadce0;
+  border-radius: 4px;
+}
+
+.tabs-section::-webkit-scrollbar-thumb:hover {
+  background-color: #bdc1c6;
+}

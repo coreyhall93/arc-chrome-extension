@@ -1,0 +1,5 @@
+Placeholder file for icons directory.
+
+Icon files (icon16.png, icon48.png, icon128.png) should be added here.
+
+For now, Chrome will use default icons.

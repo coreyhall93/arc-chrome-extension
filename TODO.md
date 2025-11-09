@@ -2,17 +2,17 @@
 
 ## Phase 1: Foundation
 
-- [ ] 1. Set up basic Chrome extension structure (manifest.json, folders, permissions)
-- [ ] 2. Create side panel UI framework (HTML, CSS, JS entry points)
-- [ ] 3. Implement basic tab listing in sidebar (read-only)
-- [ ] 4. Style sidebar to match Chrome's native UI aesthetic
+- [x] 1. Set up basic Chrome extension structure (manifest.json, folders, permissions)
+- [x] 2. Create side panel UI framework (HTML, CSS, JS entry points)
+- [x] 3. Implement basic tab listing in sidebar (read-only)
+- [x] 4. Style sidebar to match Chrome's native UI aesthetic
 
 ## Phase 2: Core Tab Management
 
-- [ ] 5. Implement click to switch tabs functionality
-- [ ] 6. Add close button on hover for tabs
-- [ ] 7. Add New Tab button at bottom of sidebar
-- [ ] 8. Implement active/inactive tab visual states
+- [x] 5. Implement click to switch tabs functionality
+- [x] 6. Add close button on hover for tabs
+- [x] 7. Add New Tab button at bottom of sidebar
+- [x] 8. Implement active/inactive tab visual states
 
 ## Phase 3: Spaces System
 
@@ -109,4 +109,4 @@
 
 **Total Tasks: 66**
 
-**Progress: 0/66 (0%)**
+**Progress: 8/66 (12%)**
