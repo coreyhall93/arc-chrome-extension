@@ -99,6 +99,19 @@ body {
   background-color: #1a73e8;
 }
 
+.tab-item.closed {
+  opacity: 0.6;
+}
+
+.tab-item.closed:hover {
+  opacity: 0.8;
+}
+
+.tab-item.closed .tab-title {
+  color: #5f6368;
+  font-style: italic;
+}
+
 .tab-favicon {
   width: 16px;
   height: 16px;

@@ -3,9 +3,11 @@
 // State management
 let currentWindowId = null;
 let tabs = [];
+let pinnedTabs = [];
 let spaces = [];
 let currentSpaceId = null;
 let tabSpaceMap = {};
+let pinnedTabsData = {};
 let spaceModal = null;
 let contextMenu = null;
 let toast = null;
@@ -210,8 +212,9 @@ async function loadTabs() {
     // Get all tabs in current window
     const allTabs = await chrome.tabs.query({ windowId: currentWindowId });
 
-    // Get tab-space mapping
+    // Get tab-space mapping and pinned tabs data
     tabSpaceMap = await getTabSpaceMap();
+    pinnedTabsData = await getPinnedTabs();
 
     // Get valid space IDs
     const validSpaceIds = spaces.map(s => s.id);
@@ -227,8 +230,26 @@ async function loadTabs() {
       }
     }
 
-    // Filter tabs for current space
-    tabs = allTabs.filter(tab => tabSpaceMap[tab.id] === currentSpaceId);
+    // Separate pinned and unpinned tabs for current space
+    const currentSpaceTabs = allTabs.filter(tab => tabSpaceMap[tab.id] === currentSpaceId);
+
+    // Get pinned tabs for current space (including closed ones)
+    const currentSpacePinnedData = Object.entries(pinnedTabsData)
+      .filter(([_, data]) => data.spaceId === currentSpaceId)
+      .map(([tabId, data]) => ({
+        ...data,
+        tabId: tabId,
+        isOpen: currentSpaceTabs.some(t => t.id.toString() === tabId)
+      }));
+
+    // Add open tab data to pinned tabs
+    pinnedTabs = currentSpacePinnedData.map(pinData => {
+      const openTab = currentSpaceTabs.find(t => t.id.toString() === pinData.tabId);
+      return openTab ? { ...openTab, ...pinData, isPinned: true } : { ...pinData, isPinned: true };
+    });
+
+    // Unpinned tabs are tabs not in pinnedTabsData
+    tabs = currentSpaceTabs.filter(tab => !pinnedTabsData[tab.id]);
 
     renderTabs();
   } catch (error) {
@@ -238,29 +259,47 @@ async function loadTabs() {
 
 // Render tabs in the sidebar
 function renderTabs() {
+  const pinnedContainer = document.getElementById('pinned-tabs');
   const unpinnedContainer = document.getElementById('unpinned-tabs');
+
+  pinnedContainer.innerHTML = '';
   unpinnedContainer.innerHTML = '';
 
+  // Render pinned tabs
+  pinnedTabs.forEach(tab => {
+    const tabElement = createTabElement(tab, true);
+    pinnedContainer.appendChild(tabElement);
+  });
+
+  // Render unpinned tabs
   tabs.forEach(tab => {
-    const tabElement = createTabElement(tab);
+    const tabElement = createTabElement(tab, false);
     unpinnedContainer.appendChild(tabElement);
   });
 }
 
 // Create a tab element
-function createTabElement(tab) {
+function createTabElement(tab, isPinned = false) {
   const tabItem = document.createElement('div');
   tabItem.className = 'tab-item';
-  tabItem.dataset.tabId = tab.id;
+  tabItem.dataset.tabId = tab.id || tab.tabId;
 
-  if (tab.active) {
+  // Check if tab is closed (for pinned tabs)
+  const isClosed = isPinned && !tab.isOpen;
+
+  if (isClosed) {
+    tabItem.classList.add('closed');
+  }
+
+  if (tab.active && !isClosed) {
     tabItem.classList.add('active');
   }
 
   // Favicon
   const favicon = document.createElement('img');
   favicon.className = 'tab-favicon';
-  favicon.src = tab.favIconUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23e8eaed"/></svg>';
+  const iconUrl = tab.favIconUrl || tab.favicon || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23e8eaed"/></svg>';
+  favicon.src = iconUrl;
   favicon.onerror = () => {
     favicon.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23e8eaed"/></svg>';
   };
@@ -268,30 +307,44 @@ function createTabElement(tab) {
   // Title
   const title = document.createElement('div');
   title.className = 'tab-title';
-  title.textContent = tab.title || 'New Tab';
-  title.title = tab.title || 'New Tab';
+  title.textContent = tab.title || tab.url || 'New Tab';
+  title.title = tab.title || tab.url || 'New Tab';
 
   // Close button
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-close';
   closeBtn.textContent = '×';
-  closeBtn.title = 'Close tab';
+  closeBtn.title = isClosed ? 'Unpin tab' : 'Close tab';
   closeBtn.onclick = (e) => {
     e.stopPropagation();
-    closeTab(tab.id);
+    if (isPinned && isClosed) {
+      unpinTab(tab.tabId);
+    } else {
+      closeTab(tab.id);
+    }
   };
 
   tabItem.appendChild(favicon);
   tabItem.appendChild(title);
   tabItem.appendChild(closeBtn);
 
-  // Click to switch to tab
-  tabItem.onclick = () => switchToTab(tab.id);
+  // Click to switch to tab (or reopen if closed pinned tab)
+  tabItem.onclick = () => {
+    if (isClosed) {
+      reopenPinnedTab(tab);
+    } else {
+      switchToTab(tab.id);
+    }
+  };
 
   // Right-click for context menu
   tabItem.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    showTabContextMenu(e, tab);
+    if (isPinned) {
+      showPinnedTabContextMenu(e, tab);
+    } else {
+      showTabContextMenu(e, tab);
+    }
   });
 
   return tabItem;
@@ -354,7 +407,105 @@ async function handleTabContextAction(action, tab) {
   } else if (action === 'move-space-menu') {
     showMoveToSpaceMenu(tab);
   } else if (action === 'pin') {
-    toast.show('Pin functionality coming in Phase 4');
+    await pinTab(tab);
+  } else if (action === 'close') {
+    await closeTab(tab.id);
+  }
+}
+
+// Pin a tab
+async function pinTab(tab) {
+  try {
+    await setPinnedTab(tab.id.toString(), {
+      url: tab.url,
+      title: tab.title,
+      favicon: tab.favIconUrl,
+      spaceId: currentSpaceId,
+      order: pinnedTabs.length,
+      createdAt: Date.now()
+    });
+    await loadTabs();
+    toast.show('Tab pinned');
+  } catch (error) {
+    console.error('Error pinning tab:', error);
+    toast.show('Failed to pin tab');
+  }
+}
+
+// Unpin a tab
+async function unpinTab(tabId) {
+  try {
+    await removePinnedTab(tabId);
+    await loadTabs();
+    toast.show('Tab unpinned');
+  } catch (error) {
+    console.error('Error unpinning tab:', error);
+    toast.show('Failed to unpin tab');
+  }
+}
+
+// Reopen a closed pinned tab
+async function reopenPinnedTab(tab) {
+  try {
+    const newTab = await chrome.tabs.create({
+      windowId: currentWindowId,
+      url: tab.url
+    });
+    await setTabSpace(newTab.id, currentSpaceId);
+    // Update pinned tab data with new tab ID
+    await removePinnedTab(tab.tabId);
+    await setPinnedTab(newTab.id.toString(), {
+      url: tab.url,
+      title: tab.title,
+      favicon: tab.favicon,
+      spaceId: currentSpaceId,
+      order: tab.order,
+      createdAt: tab.createdAt
+    });
+    await loadTabs();
+  } catch (error) {
+    console.error('Error reopening pinned tab:', error);
+    toast.show('Failed to reopen tab');
+  }
+}
+
+// Show pinned tab context menu
+function showPinnedTabContextMenu(event, tab) {
+  const menuItems = [
+    { label: 'Copy Link', action: 'copy' }
+  ];
+
+  // Add "Move to Space" submenu if there are other spaces
+  const otherSpaces = spaces.filter(s => s.id !== currentSpaceId);
+  if (otherSpaces.length > 0) {
+    menuItems.push({ type: 'divider' });
+    menuItems.push({ label: 'Move to Space ›', action: 'move-space-menu' });
+  }
+
+  menuItems.push({ type: 'divider' });
+  menuItems.push({ label: 'Edit URL', action: 'edit-url' });
+  menuItems.push({ label: 'Update URL', action: 'update-url' });
+  menuItems.push({ type: 'divider' });
+  menuItems.push({ label: 'Unpin Tab', action: 'unpin' });
+  if (tab.isOpen) {
+    menuItems.push({ label: 'Close Tab', action: 'close', danger: true });
+  }
+
+  contextMenu.show(event.clientX, event.clientY, menuItems, tab, handlePinnedTabContextAction);
+}
+
+// Handle pinned tab context menu actions
+async function handlePinnedTabContextAction(action, tab) {
+  if (action === 'copy') {
+    await copyTabLink(tab);
+  } else if (action === 'move-space-menu') {
+    showMoveToSpaceMenu(tab);
+  } else if (action === 'edit-url') {
+    toast.show('Edit URL coming soon');
+  } else if (action === 'update-url') {
+    toast.show('Update URL coming soon');
+  } else if (action === 'unpin') {
+    await unpinTab(tab.tabId);
   } else if (action === 'close') {
     await closeTab(tab.id);
   }
